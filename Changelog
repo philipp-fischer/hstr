@@ -1,3 +1,16 @@
+2020-11-19  Martin Dvorak  <martin.dvorak@mindforger.com>
+
+  * Released v2.3.0 - zsh timestamp extended history parsing and SEGFAULT fixes.
+
+2019-12-21  Martin Dvorak  <martin.dvorak@mindforger.com>
+
+  * Released v2.2.0 - toggle visibility/move help lines (Fabian Saldias),
+    zsh support fixes, several memory leaks fixed.
+
+2019-12-08  Martin Dvorak  <martin.dvorak@mindforger.com>
+
+  * Released v2.1.0 - significant zsh support improvements and stabilization.
+
 2018-08-28  Martin Dvorak  <martin.dvorak@mindforger.com>
 
   * Released v2.0.0 - Major release which resolves confusing hstr/hh ambuiguity by choosing
@@ -8,7 +21,7 @@
     Please check man page for details and update your 1.x.x configuration.
         Ubuntu package name was changed - use: apt install hstr. Tarball name has been changed as
     well to have hstr prefix - please update your scripts.
-        Additional improvements: all memory leaks fixed, long commands handling improved (...), Bash
+        Additional improvements: all memory leaks fixed, long commands handling improved (...), bash
     autocomplete added.
 
 2018-08-13  Martin Dvorak  <martin.dvorak@mindforger.com>
@@ -30,7 +43,7 @@
 
 2017-01-21  Martin Dvorak  <martin.dvorak@mindforger.com>
 
-  * Released v1.22 - Zsh history mgmt improvements (delete).
+  * Released v1.22 - zsh history mgmt improvements (delete).
 
 2016-11-22  Martin Dvorak  <martin.dvorak@mindforger.com>
 

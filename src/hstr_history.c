@@ -1,7 +1,7 @@
 /*
  hstr_history.c     loading and processing of BASH history
 
- Copyright (C) 2014-2018  Martin Dvorak <martin.dvorak@mindforger.com>
+ Copyright (C) 2014-2020  Martin Dvorak <martin.dvorak@mindforger.com>
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -49,9 +49,16 @@ char* get_history_file_name(void)
 {
     char* historyFile = getenv(ENV_VAR_HISTFILE);
     if(!historyFile || strlen(historyFile)==0) {
-        char* home = getenv(ENV_VAR_HOME);
-        historyFile = malloc(strlen(home) + 1 + strlen(FILE_DEFAULT_HISTORY) + 1);
-        strcat(strcat(strcpy(historyFile, home), "/"), FILE_DEFAULT_HISTORY);
+        if(isZshParentShell()) {
+            historyFile = get_home_file_path(FILE_ZSH_HISTORY);
+            if(access(historyFile, F_OK) == -1) {
+                free(historyFile);
+                historyFile = get_home_file_path(FILE_ZSH_ZHISTORY);
+                // ... fallback if this file doesn't exist?
+            }
+        } else {
+            historyFile = get_home_file_path(FILE_DEFAULT_HISTORY);
+        }
     } else {
         // allocate so that this function always returns string to be freed
         // (getenv() returns pointer (no need to free), home is allocated (must be freed)
@@ -92,19 +99,66 @@ bool is_hist_timestamp(const char* line)
     return (i >= 11);
 }
 
+char* parse_history_line(char *l)
+{
+#ifndef HSTR_TESTS_UNIT
+    static bool isZsh, c;
+    if(!c) {
+        isZsh=isZshParentShell();
+        c=true;
+    }
+#endif
+
+    if(
+#ifndef HSTR_TESTS_UNIT
+    !isZsh ||
+#endif
+    !l ||
+    l[0]!=':') {
+        return l;
+    }
+
+    // In zsh history file, the format of item CAN BE prefixed w/ timestamp
+    // [:][blank][unix_timestamp][:][0][;][cmd]
+    // Such as:
+    // : 1420549651:0;ls /tmp/b
+    // And the limit of unix timestamp 9999999999 is 2289/11/21,
+    // so we could skip first 15 chars in every zsh history item to get the cmd.
+    char *pt=l+2;
+    unsigned u;
+    for(u=0; u<ZSH_HISTORY_EXT_DIGITS && isdigit(*pt); u++, pt++);
+    if (u==ZSH_HISTORY_EXT_DIGITS && *pt==':') {
+        pt++;
+        while(isdigit(*pt)) {
+            pt++;
+            if(*pt==';')
+                return ++pt;
+        }
+    }
+
+    return l;
+}
+
+bool history_mgmt_load_history_file(void)
+{
+    char *historyFile = get_history_file_name();
+    // TODO memleak in readline lib: read_history() > add_history()
+    if(read_history(historyFile)!=0) {
+        fprintf(stderr, "\nUnable to read history file from '%s'!\n", historyFile);
+        free(historyFile);
+        return false;
+    }
+    free(historyFile);
+    return true;
+}
+
 HistoryItems* prioritized_history_create(int optionBigKeys, HashSet *blacklist)
 {
     using_history();
-
-    char *historyFile = get_history_file_name();
-    if(read_history(historyFile)!=0) {
-        fprintf(stderr, "\nUnable to read history file from '%s'!\n",historyFile);
-        exit(EXIT_FAILURE);
+    if(!history_mgmt_load_history_file()) {
+        return NULL;
     }
-    free(historyFile);
     HISTORY_STATE* historyState=history_get_history_state();
-
-    bool isZsh = isZshParentShell();
 
     if(historyState->length > 0) {
         HashSet rankmap;
@@ -123,7 +177,9 @@ HistoryItems* prioritized_history_create(int optionBigKeys, HashSet *blacklist)
         char *line;
         int i;
         for(i=0; i<historyState->length; i++, rawOffset--) {
-            unsigned itemOffset;
+            if(!historyList[i]->line || !strlen(historyList[i]->line)) {
+                continue;
+            }
 
             if(is_hist_timestamp(historyList[i]->line)) {
                 rawHistory[rawOffset]=0;
@@ -131,23 +187,7 @@ HistoryItems* prioritized_history_create(int optionBigKeys, HashSet *blacklist)
                 continue;
             }
 
-            // In zsh history file, the format of item CAN BE prefixed w/ timestamp
-            // [:][blank][unix_timestamp][:][0][;][cmd]
-            // Such as:
-            // : 1420549651:0;ls /tmp/b
-            // And the limit of unix timestamp 9999999999 is 2289/11/21,
-            // so we could skip first 15 chars in every zsh history item to get the cmd.
-            if(isZsh && strlen(historyList[i]->line) && historyList[i]->line[0]==':') {
-                itemOffset=ZSH_HISTORY_ITEM_OFFSET;
-            } else {
-                itemOffset=BASH_HISTORY_ITEM_OFFSET;
-            }
-
-            if(historyList[i]->line && strlen(historyList[i]->line)>itemOffset) {
-                line=historyList[i]->line+itemOffset;
-            } else {
-                line=historyList[i]->line;
-            }
+            line=parse_history_line(historyList[i]->line);
             rawHistory[rawOffset]=line;
             if(hashset_contains(blacklist, line)) {
                 continue;
@@ -201,17 +241,6 @@ HistoryItems* prioritized_history_create(int optionBigKeys, HashSet *blacklist)
         for(u=0; u<rs.size; u++) {
             if(prioritizedRadix[u]->data) {
                 char* item = ((RankedHistoryItem*)(prioritizedRadix[u]->data))->item;
-                // In zsh history file, the format of item CAN BE prefixed w/ timestamp
-                // [:][blank][unix_timestamp][:][0][;][cmd]
-                // Such as:
-                // : 1420549651:0;ls /tmp/b
-                // And the limit of unix timestamp 9999999999 is 2289/11/21,
-                // so we could skip first 15 chars in every zsh history item to get the cmd.
-                if(isZsh && strlen(item) && item[0]==':') {
-                    if(strlen(item)>ZSH_HISTORY_ITEM_OFFSET) {
-                        item += ZSH_HISTORY_ITEM_OFFSET;
-                    }
-                }
                 prioritizedHistory->items[u]=item;
             }
             free(prioritizedRadix[u]->data);
@@ -226,6 +255,7 @@ HistoryItems* prioritized_history_create(int optionBigKeys, HashSet *blacklist)
         return prioritizedHistory;
     } else {
         // history/readline cleanup, clear_history() called on exit as entries are used by raw view
+        printf("No history - nothing to suggest...\n");
         free(historyState);
         return NULL;
     }
@@ -234,24 +264,26 @@ HistoryItems* prioritized_history_create(int optionBigKeys, HashSet *blacklist)
 
 void prioritized_history_destroy(HistoryItems* h)
 {
-    if(h->items) {
-        if(h->count) {
-            unsigned i;
-            for(i=0; i<h->count; i++) {
-                free(h->items[i]);
+    if(h) {
+        if(h->items) {
+            if(h->count) {
+                unsigned i;
+                for(i=0; i<h->count; i++) {
+                    free(h->items[i]);
+                }
             }
+            free(h->items);
         }
-        free(h->items);
+
+        if(h->rawItems) {
+            free(h->rawItems);
+        }
+
+        free(h);
+
+        // readline/history cleanup
+        free(history_get_history_state());
     }
-
-    if(h->rawItems) {
-        free(h->rawItems);
-    }
-
-    free(h);
-
-    // readline/history cleanup
-    free(history_get_history_state());
     clear_history();
 }
 
@@ -260,7 +292,7 @@ void history_mgmt_open(void)
     dirty=false;
 }
 
-void history_clear_dirty(void)
+void history_mgmt_clear_dirty(void)
 {
     dirty=false;
 }
@@ -307,13 +339,11 @@ int history_mgmt_remove_from_system_history(char *cmd)
 bool history_mgmt_remove_last_history_entry(bool verbose)
 {
     using_history();
-
-    char *historyFile = get_history_file_name();
-    if(read_history(historyFile)!=0) {
-        fprintf(stderr, "\nUnable to read history file from '%s'!\n",historyFile);
-        exit(EXIT_FAILURE);
+    if(!history_mgmt_load_history_file()) {
+        return false;
     }
     HISTORY_STATE *historyState=history_get_history_state();
+
     // delete the last command + the command that was used to run HSTR
     if(historyState->length > 1) {
         // length is NOT updated on history entry removal
@@ -322,12 +352,19 @@ bool history_mgmt_remove_last_history_entry(bool verbose)
         }
         free_history_entry(remove_history(historyState->length-1));
         free_history_entry(remove_history(historyState->length-2));
-        write_history(get_history_file_name());
+        char *historyFile = get_history_file_name();
+        write_history(historyFile);
+        free(historyState);
+        free(historyFile);
+
         return true;
     }
+
     if(verbose) {
         fprintf(stderr, "Unable to delete the last command from history.\n");
     }
+
+    free(historyState);
     return false;
 }
 

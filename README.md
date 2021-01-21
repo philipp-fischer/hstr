@@ -3,10 +3,10 @@
 [![Current release](https://img.shields.io/github/release/dvorka/hstr.svg)](https://github.com/dvorka/hstr/releases)
 [![GitHub issues](https://img.shields.io/github/issues/dvorka/hstr.svg?maxAge=360)](https://github.com/dvorka/hstr/issues)
 [![All releases downloads](https://img.shields.io/github/downloads/dvorka/hstr/total.svg)](https://github.com/dvorka/hstr/releases)
-[![AUR](https://img.shields.io/aur/license/yaourt.svg)](https://github.com/dvorka/hstr/blob/master/LICENSE)
+[![License](https://img.shields.io/github/license/dvorka/hstr?color=%23fe0000)](https://github.com/dvorka/hstr/blob/master/LICENSE)
 
-Easily view, navigate and search your **command history** with shell history suggest box for Bash and
-[zsh](CONFIGURATION.md#zsh-history-settings).
+Easily view, navigate and search your **command history** with shell history suggest box for 
+[bash](https://www.gnu.org/software/bash/) and [zsh](CONFIGURATION.md#zsh-history-settings).
 
 [![Shell History Suggest Box](doc/hstr-v2.gif "Shell History Suggest Box @ YouTube")](http://www.youtube.com/watch?v=sPF29NyXe2U)
 
@@ -16,9 +16,9 @@ want to  avoid the need to write **long commands** over and over
 again? Are you looking for a tool that is able to manage your
 **favorite** commands?
 
-HSTR (**H**i**ST**o**R**y) is a command line utility that brings improved Bash/zsh command completion
+HSTR (**H**i**ST**o**R**y) is a command line utility that brings improved `bash`/`zsh` command completion
 from the history. It aims to make completion **easier** and more **efficient**
-than <kbd>Ctrl</kbd><kbd>r</kbd>.
+than <kbd>Ctrl-r</kbd>.
 
 HSTR can also **manage** your command history (for instance you can remove
 commands that are obsolete or contain a piece of sensitive information)
@@ -66,7 +66,11 @@ Tarball:
 Configure HSTR just by running:
 
 ```bash
+# bash
 hstr --show-configuration >> ~/.bashrc
+
+# zsh
+hstr --show-configuration >> ~/.zshrc
 ```
 For detailed HSTR configuration documentation please refer to [Configuration](CONFIGURATION.md).
 
@@ -79,7 +83,7 @@ man hstr
 ```
 
 ## In the News
-Read about HSTR in [LinuxMagazine](http://www.linux-magazine.com/Issues/2014/164/Bash-History-on-Steroids), [UbuntuGeek](http://www.ubuntugeek.com/tag/hstr-bash-history), [DebianAdmin](http://www.debianadmin.com/hstr-easily-view-navigate-search-and-use-your-command-history-with-shell-history.html), [Tuxdiary](https://tuxdiary.com/2015/02/17/hstr/), [Softpedia](http://linux.softpedia.com/get/Terminals/BASH-Command-History-Completion-103155.shtml) and [OSTechNix](https://www.ostechnix.com/hstr-easily-view-navigate-search-manage-commandline-history/).
+Read about HSTR in [LinuxMagazine](http://www.linux-magazine.com/Issues/2014/164/Bash-History-on-Steroids), [UbuntuGeek](http://www.ubuntugeek.com/tag/hstr-bash-history), [DebianAdmin](http://www.debianadmin.com/hstr-easily-view-navigate-search-and-use-your-command-history-with-shell-history.html), [Tuxdiary](http://tuxdiary.com/2015/02/17/hstr/), [Softpedia](http://linux.softpedia.com/get/Terminals/BASH-Command-History-Completion-103155.shtml) and [OSTechNix](https://www.ostechnix.com/hstr-easily-view-navigate-search-manage-commandline-history/).
 
 
 ## Upgrade

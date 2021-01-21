@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (C) 2014-2018  Martin Dvorak <martin.dvorak@mindforger.com>
+# Copyright (C) 2014-2020  Martin Dvorak <martin.dvorak@mindforger.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -103,7 +103,7 @@ function buildDebPackage() {
     #
     # 2) create source deb
     #    
-    # 2.1) add Debian control files
+    # 2.a) add Debian control files
     cp -rvf ${HSTRSRC}/build/debian/debian  .
     createChangelog ./debian/changelog
 
@@ -119,7 +119,7 @@ function buildDebPackage() {
     DEBFULLNAME="Martin Dvorak"
     export DEBEMAIL DEBFULLNAME
 
-    # 2.2) build BINARY deb
+    # 2.b) build BINARY deb
     # https://www.debian.org/doc/manuals/maint-guide/build.en.html
     #debuild -us -uc
     dpkg-buildpackage -us -uc
@@ -127,7 +127,7 @@ function buildDebPackage() {
 
     # 3) create source deb
     #    
-    # 3.1) build deb
+    # 3.a) build deb
     # build SOURCE deb package
     #debuild -S
     dpkg-buildpackage -S
@@ -147,8 +147,8 @@ then
   exit 1
 fi
 
-export ARG_BAZAAR_MSG="HSTR 2.0.0"
-export ARG_VERSION="2.0.0"
+export ARG_BAZAAR_MSG="HSTR 2.3.0"
+export ARG_VERSION="2.3.0"
 
 # Debian releases: https://www.debian.org/releases/
 #   6/7/8/9/10: squeeze wheezy jessie stretch buster

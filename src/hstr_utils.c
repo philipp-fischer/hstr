@@ -1,7 +1,7 @@
 /*
  hstr_utils.c       utilities
 
- Copyright (C) 2014-2018  Martin Dvorak <martin.dvorak@mindforger.com>
+ Copyright (C) 2014-2020  Martin Dvorak <martin.dvorak@mindforger.com>
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -164,6 +164,14 @@ void get_hostname(int bufferSize, char *buffer)
     strcpy(buffer, "localhost");
 }
 
+char* get_home_file_path(char* filename)
+{
+    char* home = getenv(ENV_VAR_HOME);
+    char* path = malloc(strlen(home) + 1 + strlen(filename) + 1);
+    strcat(strcat(strcpy(path, home), "/"), filename);
+    return path;
+}
+
 void toggle_case(char *str, bool lowercase) {
     if(str && strlen(str)>0) {
         int i;
@@ -201,6 +209,7 @@ char *get_shell_name_by_ppid(const int pid)
             fclose(f);
         }
     }
+
     // if name isn't e.g. bash/zsh at this point, fall back to $SHELL
     if(strlen(name) > 4){
       char* shell = getenv("SHELL");
@@ -208,10 +217,13 @@ char *get_shell_name_by_ppid(const int pid)
           shell=strrchr(shell,'/');
           if(shell != NULL) {
               shell++;
-              strncpy(name,shell,sizeof(char)*strlen(shell));
+              unsigned len=strlen(shell)*sizeof(char);
+              name = realloc(name, len);
+              strncpy(name, shell, len);
           }
       }
     }
+
     return name;
 }
 

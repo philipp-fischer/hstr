@@ -1,9 +1,10 @@
 # Maintainer: Christian Wieden <wiedenchr at gmail dot com>
 # Contributor: Ricardo Band <me at xengi dot de>
 # Contributor: Filip Szymański <fszymanski at, fedoraproject.org>
+# Contributor: Busindre <busilezas at busindre.com>
 
 pkgname=hstr
-pkgver=2.0
+pkgver=2.3
 pkgrel=1
 pkgdesc="A command line utility that brings improved BASH command completion from the history. It aims to make completion easier and more efficient than Ctrl-r."
 arch=('any')
@@ -11,7 +12,7 @@ url="https://github.com/dvorka/hstr"
 license=('Apache')
 makedepends=('autoconf' 'automake' 'ncurses' 'readline')
 source=(${pkgname}-${pkgver}.tar.gz::https://github.com/dvorka/${pkgname}/archive/${pkgver}.tar.gz)
-sha256sums=('6c130afd8ca570ee1988a0c7d6a96efeeabd21be7e05ce1f3144bb3c86c74441')
+sha256sums=('886531ca9d8d1a5a93a3db96e9fc64154a03f6de428c74c722b41057bceca266')
 
 prepare() {
     cd "${pkgname}-${pkgver}"

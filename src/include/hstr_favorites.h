@@ -1,7 +1,7 @@
 /*
  hstr_favorites.h       header file for favorite commands
 
- Copyright (C) 2014-2018  Martin Dvorak <martin.dvorak@mindforger.com>
+ Copyright (C) 2014-2020  Martin Dvorak <martin.dvorak@mindforger.com>
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@
 #include "hashset.h"
 
 #define ENV_VAR_USER "USER"
-#define ENV_VAR_HOME "HOME"
 
 #define FILE_HSTR_FAVORITES ".hstr_favorites"
 

@@ -1,7 +1,7 @@
 /*
  hstr.c     HSTR shell history completion utility
 
- Copyright (C) 2014-2018 Martin Dvorak <martin.dvorak@mindforger.com>
+ Copyright (C) 2014-2020 Martin Dvorak <martin.dvorak@mindforger.com>
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -67,28 +67,32 @@
 
 #define HSTR_ENV_VAR_CONFIG      "HSTR_CONFIG"
 #define HSTR_ENV_VAR_PROMPT      "HSTR_PROMPT"
+#define HSTR_ENV_VAR_IS_SUBSHELL "HSTR_IS_SUBSHELL"
 
-#define HSTR_CONFIG_THEME_MONOCHROMATIC   "monochromatic"
-#define HSTR_CONFIG_THEME_HICOLOR         "hicolor"
-#define HSTR_CONFIG_STATIC_FAVORITES      "static-favorites"
+#define HSTR_CONFIG_THEME_MONOCHROMATIC     "monochromatic"
+#define HSTR_CONFIG_THEME_HICOLOR           "hicolor"
+#define HSTR_CONFIG_STATIC_FAVORITES        "static-favorites"
 #define HSTR_CONFIG_SKIP_FAVORITES_COMMENTS "skip-favorites-comments"
-#define HSTR_CONFIG_FAVORITES         "favorites-view"
-#define HSTR_CONFIG_SORTING           "raw-history-view"
-#define HSTR_CONFIG_CASE              "case-sensitive"
-#define HSTR_CONFIG_REGEXP            "regexp-matching"
-#define HSTR_CONFIG_SUBSTRING         "substring-matching"
-#define HSTR_CONFIG_KEYWORDS          "keywords-matching"
-#define HSTR_CONFIG_NOCONFIRM         "no-confirm"
-#define HSTR_CONFIG_VERBOSE_KILL      "verbose-kill"
-#define HSTR_CONFIG_PROMPT_BOTTOM     "prompt-bottom"
-#define HSTR_CONFIG_BLACKLIST         "blacklist"
-#define HSTR_CONFIG_KEEP_PAGE         "keep-page"
-#define HSTR_CONFIG_DEBUG             "debug"
-#define HSTR_CONFIG_WARN              "warning"
-#define HSTR_CONFIG_BIG_KEYS_SKIP     "big-keys-skip"
-#define HSTR_CONFIG_BIG_KEYS_FLOOR    "big-keys-floor"
-#define HSTR_CONFIG_BIG_KEYS_EXIT     "big-keys-exit"
-#define HSTR_CONFIG_DUPLICATES        "duplicates"
+#define HSTR_CONFIG_FAVORITES               "favorites-view"
+#define HSTR_CONFIG_SORTING                 "raw-history-view"
+#define HSTR_CONFIG_CASE                    "case-sensitive"
+#define HSTR_CONFIG_REGEXP                  "regexp-matching"
+#define HSTR_CONFIG_SUBSTRING               "substring-matching"
+#define HSTR_CONFIG_KEYWORDS                "keywords-matching"
+#define HSTR_CONFIG_NO_CONFIRM              "no-confirm"
+#define HSTR_CONFIG_VERBOSE_KILL            "verbose-kill"
+#define HSTR_CONFIG_PROMPT_BOTTOM           "prompt-bottom"
+#define HSTR_CONFIG_HELP_ON_OPPOSITE_SIDE   "help-on-opposite-side"
+#define HSTR_CONFIG_HIDE_BASIC_HELP         "hide-basic-help"
+#define HSTR_CONFIG_HIDE_HELP               "hide-help"
+#define HSTR_CONFIG_BLACKLIST               "blacklist"
+#define HSTR_CONFIG_KEEP_PAGE               "keep-page"
+#define HSTR_CONFIG_DEBUG                   "debug"
+#define HSTR_CONFIG_WARN                    "warning"
+#define HSTR_CONFIG_BIG_KEYS_SKIP           "big-keys-skip"
+#define HSTR_CONFIG_BIG_KEYS_FLOOR          "big-keys-floor"
+#define HSTR_CONFIG_BIG_KEYS_EXIT           "big-keys-exit"
+#define HSTR_CONFIG_DUPLICATES              "duplicates"
 
 #define HSTR_DEBUG_LEVEL_NONE  0
 #define HSTR_DEBUG_LEVEL_WARN  1
@@ -133,7 +137,7 @@
 
 // major.minor.revision
 static const char* VERSION_STRING=
-        "hstr version \"2.0.0\" (2018-08-28T13:30:00)"
+        "hstr version \"2.3.0\" (2020-11-19T07:41:00)"
         "\n";
 
 static const char* HSTR_VIEW_LABELS[]={
@@ -165,13 +169,13 @@ static const char* INSTALL_BASH_STRING=
         //   history -a ... append NEW entries from memory to .bash_history (i.e. flush to file where HSTR reads commands)
         //   history -n ... append NEW entries from .bash_history to memory i.e. NOT entire history reload
         //   history -c ... CLEAR in memory history (keeps .bash_history content)
-        //   history -r ... append ALL entries from .bash_history to memory (useful to sync DIFFERENT Bash sessions)
+        //   history -r ... append ALL entries from .bash_history to memory (useful to sync DIFFERENT bash sessions)
         // Conclusion:
         //   -a -n ... Fastest and almost-consistent option i.e. there is efficiency/integrity trade-off.
         //             It works correctly if memory entries are not deleted by HSTR. It doesn't synchronize history
-        //             across different Bash sessions.
-        //   -c -r ... Forces entire .bash_history to be reloaded (handles history deletes, synchronizes different Bash sessions)
-        "\n# ensure synchronization between Bash memory and history file"
+        //             across different bash sessions.
+        //   -c -r ... Forces entire .bash_history to be reloaded (handles history deletes, synchronizes different bash sessions)
+        "\n# ensure synchronization between bash memory and history file"
         "\nexport PROMPT_COMMAND=\"history -a; history -n; ${PROMPT_COMMAND}\""
         "\n# if this is interactive shell, then bind hstr to Ctrl-r (for Vi mode check doc)"
 #if defined(__MS_WSL__)
@@ -203,15 +207,17 @@ static const char* INSTALL_BASH_STRING=
 
 // zsh doc: http://zsh.sourceforge.net/Guide/zshguide.html
 static const char* INSTALL_ZSH_STRING=
-        "\n# HSTR configuration - add this to ~/.bashrc"
+        "\n# HSTR configuration - add this to ~/.zshrc"
         "\nalias hh=hstr                    # hh to be alias for hstr"
-        "\nexport HISTFILE=~/.zsh_history  # ensure history file visibility"
-        "\nexport HSTR_CONFIG=hicolor        # get more colors"
+        "\nsetopt histignorespace           # skip cmds w/ leading space from history"
+        // HISTFILE should not be needed - HSTR must work on blank environment as well
+        // "\nexport HISTFILE=~/.zsh_history   # ensure history file visibility"
+        "\nexport HSTR_CONFIG=hicolor       # get more colors"
 #if defined(__MS_WSL__)
-        // TODO binding to be rewritten for zsh@WSL as it's done for Bash - hstr_winwsl() like function to be implemented to make it work on WSL
+        // TODO binding to be rewritten for zsh@WSL as it's done for bash - hstr_winwsl() like function to be implemented to make it work on WSL
 
-        "\n# Function and binding below is Bash script that makes command completion work under WSL."
-        "\n# If you can rewrite the function and binding from Bash to zsh please send it to martin.dvorak@mindforger.com"
+        "\n# Function and binding below is bash script that makes command completion work under WSL."
+        "\n# If you can rewrite the function and binding from bash to zsh please send it to martin.dvorak@mindforger.com"
         "\n# so that I can share it with other users."
         "\n#function hstr_winwsl {"
         "\n#  offset=${READLINE_POINT}"
@@ -223,10 +229,10 @@ static const char* INSTALL_ZSH_STRING=
         "\n"
         "\nbindkey -s \"\\C-r\" \"\\eqhstr\\n\"     # bind hstr to Ctrl-r (for Vi mode check doc)"
 #elif defined(__CYGWIN__)
-        // TODO binding to be rewritten for zsh@Cygwin as it's done for Bash - hstr_cygwin() like function to be implemented to make it work under Cygwin
+        // TODO binding to be rewritten for zsh@Cygwin as it's done for bash - hstr_cygwin() like function to be implemented to make it work under Cygwin
 
-        "\n# Function and binding below is Bash script that makes command completion work under Cygwin."
-        "\n# If you can rewrite the function and binding from Bash to zsh please send it to martin.dvorak@mindforger.com"
+        "\n# Function and binding below is bash script that makes command completion work under Cygwin."
+        "\n# If you can rewrite the function and binding from bash to zsh please send it to martin.dvorak@mindforger.com"
         "\n# so that I can share it with other users."
         "\n#function hstr_cygwin {"
         "\n#  offset=${READLINE_POINT}"
@@ -238,13 +244,13 @@ static const char* INSTALL_ZSH_STRING=
         "\n"
         "\nbindkey -s \"\\C-r\" \"\\eqhstr\\n\"     # bind hstr to Ctrl-r (for Vi mode check doc)"
 #else
-        "\nbindkey -s \"\\C-r\" \"\\eqhstr\\n\"     # bind hstr to Ctrl-r (for Vi mode check doc)"
+        "\nbindkey -s \"\\C-r\" \"\\C-a hstr -- \\C-j\"     # bind hstr to Ctrl-r (for Vi mode check doc)"
 #endif
         // TODO try variant with args/pars separation
         //"\nbindkey -s \"\\C-r\" \"\\eqhstr --\\n\"     # bind hstr to Ctrl-r (for Vi mode check doc)"
         // alternate binding options in zsh:
         //   bindkey -s '^R' '^Ahstr ^M'
-        //   bindkey -s "\C-r" "\C-ahstr \C-j"
+        //   bindkey -s "\C-r" "\C-a hstr -- \C-j"
         "\n\n";
 
 static const char* HELP_STRING=
@@ -255,7 +261,7 @@ static const char* HELP_STRING=
         "\n  --kill-last-command      -k ... delete last command in history"
         "\n  --non-interactive        -n ... print filtered history and exit"
         "\n  --show-configuration     -s ... show configuration to be added to ~/.bashrc"
-        "\n  --show-zsh-configuration -z ... show Zsh configuration to be added to ~/.zshrc"
+        "\n  --show-zsh-configuration -z ... show zsh configuration to be added to ~/.zshrc"
         "\n  --show-blacklist         -b ... show commands to skip on history indexation"
         "\n  --version                -V ... show version details"
         "\n  --help                   -h ... help"
@@ -310,10 +316,14 @@ typedef struct {
     int bigKeys;
     int debugLevel;
     bool promptBottom;
+    bool helpOnOppositeSide;
+    bool hideBasicHelp;
+    bool hideHistoryHelp;
 
     int promptY;
     int promptYHelp;
     int promptYHistory;
+    int promptYNotification;
     int promptYItemsStart;
     int promptYItemsEnd;
     int promptItems;
@@ -351,10 +361,14 @@ void hstr_init(void)
     hstr->bigKeys=RADIX_BIG_KEYS_SKIP;
     hstr->debugLevel=HSTR_DEBUG_LEVEL_NONE;
     hstr->promptBottom=false;
+    hstr->helpOnOppositeSide=false;
+    hstr->hideBasicHelp=false;
+    hstr->hideHistoryHelp=false;
 
     hstr->promptY
      =hstr->promptYHelp
      =hstr->promptYHistory
+     =hstr->promptYNotification
      =hstr->promptYItemsStart
      =hstr->promptYItemsEnd
      =hstr->promptItems
@@ -375,36 +389,124 @@ void hstr_destroy(void)
     free(hstr);
 }
 
-void hstr_on_exit(void)
+void hstr_exit(int status)
 {
-    history_mgmt_flush();
     hstr_destroy();
+    exit(status);
 }
 
 void signal_callback_handler_ctrl_c(int signum)
 {
     if(signum==SIGINT) {
+        history_mgmt_flush();
         hstr_curses_stop(false);
-        hstr_on_exit();
-        exit(signum);
+        hstr_exit(signum);
     }
 }
 
 unsigned recalculate_max_history_items(void)
 {
-    hstr->promptItems = getmaxy(stdscr) - 3;
+    int n = getmaxy(stdscr);
+    hstr->promptItems = n-1;
+    if(!hstr->hideBasicHelp) {
+        hstr->promptItems--;
+    }
+    if(!hstr->hideHistoryHelp) {
+        hstr->promptItems--;
+    }
     if(hstr->promptBottom) {
-        hstr->promptY = getmaxy(stdscr) - 1;
-        hstr->promptYHelp = hstr->promptY - 1;
-        hstr->promptYHistory = hstr->promptY - 2;
-        hstr->promptYItemsStart = 0;
-        hstr->promptYItemsEnd = hstr->promptItems-1;
+        if(hstr->helpOnOppositeSide) {
+            // Layout:
+            // - [basic help]
+            // - [history help]
+            // - items start
+            // - ...
+            // - items end
+            // - prompt
+            int top = 0;
+            hstr->promptY = n-1;
+            if(!hstr->hideBasicHelp) {
+                hstr->promptYHelp = top++;
+            }
+            if(!hstr->hideHistoryHelp) {
+                hstr->promptYHistory = top++;
+            }
+            hstr->promptYItemsStart = top++;
+        } else {
+            // Layout:
+            // - items start
+            // - ...
+            // - items end
+            // - [history help]
+            // - [basic help]
+            // - prompt
+            int bottom = n-1;
+            hstr->promptY = bottom--;
+            if(!hstr->hideBasicHelp) {
+                hstr->promptYHelp = bottom--;
+            }
+            if(!hstr->hideHistoryHelp) {
+                hstr->promptYHistory = bottom--;
+            }
+            hstr->promptYItemsStart = 0;
+        }
     } else {
-        hstr->promptY = 0;
-        hstr->promptYHelp = 1;
-        hstr->promptYHistory = 2;
-        hstr->promptYItemsStart = 3;
-        hstr->promptYItemsEnd = getmaxy(stdscr);
+        if(hstr->helpOnOppositeSide) {
+            // Layout:
+            // - prompt
+            // - items start
+            // - ...
+            // - items end
+            // - [history help]
+            // - [basic help]
+            int bottom = n-1;
+            hstr->promptY = 0;
+            if(!hstr->hideBasicHelp) {
+                hstr->promptYHelp = bottom--;
+            }
+            if(!hstr->hideHistoryHelp) {
+                hstr->promptYHistory = bottom--;
+            }
+            hstr->promptYItemsStart = 1;
+        } else {
+            // Layout:
+            // - prompt
+            // - [basic help]
+            // - [history help]
+            // - items start
+            // - ...
+            // - items end
+            int top = 0;
+            hstr->promptY = top++;
+            if(!hstr->hideBasicHelp) {
+                hstr->promptYHelp = top++;
+            }
+            if(!hstr->hideHistoryHelp) {
+                hstr->promptYHistory = top++;
+            }
+            hstr->promptYItemsStart = top++;
+        }
+    }
+    hstr->promptYItemsEnd = hstr->promptYItemsStart+hstr->promptItems-1;
+    if(!hstr->hideBasicHelp) {
+        // Use basic help label for notifications.
+        hstr->promptYNotification = hstr->promptYHelp;
+    }
+    else {
+        // If basic help is hidden, we need another place to put notifications to.
+        if(hstr->hideBasicHelp) {
+            if(!hstr->hideHistoryHelp) {
+                // Use history help label.
+                hstr->promptYHelp = hstr->promptYHistory;
+            } else {
+                // Use one of the command item lines.
+                if((hstr->promptBottom && hstr->helpOnOppositeSide) || (!hstr->promptBottom && !hstr->helpOnOppositeSide)) {
+                    hstr->promptYHelp = hstr->promptYItemsStart;
+                } else {
+                    hstr->promptYHelp = hstr->promptYItemsEnd;
+                }
+            }
+        }
     }
     return hstr->promptItems;
 }
@@ -429,7 +531,7 @@ void hstr_get_env_configuration()
             if(strstr(hstr_config,HSTR_CONFIG_SUBSTRING)) {
                 hstr->matching=HSTR_MATCH_SUBSTRING;
             } else {
-                if(strstr(hstr_config, HSTR_CONFIG_KEYWORDS)) {
+                if(strstr(hstr_config,HSTR_CONFIG_KEYWORDS)) {
                     hstr->matching=HSTR_MATCH_KEYWORDS;
                 }
             }
@@ -459,7 +561,7 @@ void hstr_get_env_configuration()
         if(strstr(hstr_config,HSTR_CONFIG_KEEP_PAGE)) {
             hstr->keepPage=true;
         }
-        if(strstr(hstr_config,HSTR_CONFIG_NOCONFIRM)) {
+        if(strstr(hstr_config,HSTR_CONFIG_NO_CONFIRM)) {
             hstr->noConfirm=true;
         }
         if(strstr(hstr_config,HSTR_CONFIG_STATIC_FAVORITES)) {
@@ -485,6 +587,23 @@ void hstr_get_env_configuration()
             hstr->promptBottom = true;
         } else {
             hstr->promptBottom = false;
+        }
+        if(strstr(hstr_config,HSTR_CONFIG_HELP_ON_OPPOSITE_SIDE)) {
+            hstr->helpOnOppositeSide = true;
+        } else {
+            hstr->helpOnOppositeSide = false;
+        }
+        if(strstr(hstr_config,HSTR_CONFIG_HIDE_HELP)) {
+            hstr->hideBasicHelp = true;
+            hstr->hideHistoryHelp = true;
+        } else {
+            if(strstr(hstr_config,HSTR_CONFIG_HIDE_BASIC_HELP)) {
+                hstr->hideBasicHelp = true;
+                hstr->hideHistoryHelp = false;
+            } else {
+                hstr->hideBasicHelp = false;
+                hstr->hideHistoryHelp = false;
+            }
         }
         recalculate_max_history_items();
     }
@@ -524,7 +643,7 @@ unsigned print_prompt(void)
 
 void add_to_selection(char* line, unsigned int* index)
 {
-    if (hstr->noRawHistoryDuplicates) {
+    if(hstr->noRawHistoryDuplicates) {
         unsigned i;
         for(i = 0; i < *index; i++) {
             if (strcmp(hstr->selection[i], line) == 0) {
@@ -533,11 +652,14 @@ void add_to_selection(char* line, unsigned int* index)
         }
     }
     hstr->selection[*index]=line;
-    *index = *index + 1;
+    (*index)++;
 }
 
 void print_help_label(void)
 {
+    if(hstr->hideBasicHelp)
+        return;
+
     int cursorX=getcurx(stdscr);
     int cursorY=getcury(stdscr);
 
@@ -552,13 +674,17 @@ void print_help_label(void)
 void print_confirm_delete(const char* cmd)
 {
     char screenLine[CMDLINE_LNG];
-    snprintf(screenLine, getmaxx(stdscr), "Do you want to delete all occurrences of '%s'? y/n", cmd);
+    if(hstr->view==HSTR_VIEW_FAVORITES) {
+        snprintf(screenLine, getmaxx(stdscr), "Do you want to delete favorites item '%s'? y/n", cmd);
+    } else {
+        snprintf(screenLine, getmaxx(stdscr), "Do you want to delete all occurrences of '%s'? y/n", cmd);
+    }
     // TODO make this function
     if(hstr->theme & HSTR_THEME_COLOR) {
         color_attr_on(COLOR_PAIR(HSTR_COLOR_DELETE));
         color_attr_on(A_BOLD);
     }
-    mvprintw(hstr->promptYHelp, 0, "%s", screenLine);
+    mvprintw(hstr->promptYNotification, 0, "%s", screenLine);
     if(hstr->theme & HSTR_THEME_COLOR) {
         color_attr_off(A_BOLD);
         color_attr_on(COLOR_PAIR(HSTR_COLOR_NORMAL));
@@ -570,13 +696,17 @@ void print_confirm_delete(const char* cmd)
 void print_cmd_deleted_label(const char* cmd, int occurences)
 {
     char screenLine[CMDLINE_LNG];
-    snprintf(screenLine, getmaxx(stdscr), "History item '%s' deleted (%d occurrence%s)", cmd, occurences, (occurences==1?"":"s"));
+    if(hstr->view==HSTR_VIEW_FAVORITES) {
+        snprintf(screenLine, getmaxx(stdscr), "Favorites item '%s' deleted", cmd);
+    } else {
+        snprintf(screenLine, getmaxx(stdscr), "History item '%s' deleted (%d occurrence%s)", cmd, occurences, (occurences==1?"":"s"));
+    }
     // TODO make this function
     if(hstr->theme & HSTR_THEME_COLOR) {
         color_attr_on(COLOR_PAIR(HSTR_COLOR_DELETE));
         color_attr_on(A_BOLD);
     }
-    mvprintw(hstr->promptYHelp, 0, "%s", screenLine);
+    mvprintw(hstr->promptYNotification, 0, "%s", screenLine);
     if(hstr->theme & HSTR_THEME_COLOR) {
         color_attr_off(A_BOLD);
         color_attr_on(COLOR_PAIR(HSTR_COLOR_NORMAL));
@@ -593,7 +723,7 @@ void print_regexp_error(const char* errorMessage)
         color_attr_on(COLOR_PAIR(HSTR_COLOR_DELETE));
         color_attr_on(A_BOLD);
     }
-    mvprintw(hstr->promptYHelp, 0, "%s", screenLine);
+    mvprintw(hstr->promptYNotification, 0, "%s", screenLine);
     if(hstr->theme & HSTR_THEME_COLOR) {
         color_attr_off(A_BOLD);
         color_attr_on(COLOR_PAIR(HSTR_COLOR_NORMAL));
@@ -610,7 +740,7 @@ void print_cmd_added_favorite_label(const char* cmd)
         color_attr_on(COLOR_PAIR(HSTR_COLOR_INFO));
         color_attr_on(A_BOLD);
     }
-    mvprintw(hstr->promptYHelp, 0, screenLine);
+    mvprintw(hstr->promptYNotification, 0, screenLine);
     if(hstr->theme & HSTR_THEME_COLOR) {
         color_attr_off(A_BOLD);
         color_attr_on(COLOR_PAIR(HSTR_COLOR_NORMAL));
@@ -621,6 +751,9 @@ void print_cmd_added_favorite_label(const char* cmd)
 
 void print_history_label(void)
 {
+    if(hstr->hideHistoryHelp)
+        return;
+
     unsigned width=getmaxx(stdscr);
 
     char screenLine[CMDLINE_LNG];
@@ -824,7 +957,8 @@ void print_selection_row(char* text, int y, int width, char* pattern)
     char screenLine[CMDLINE_LNG];
     char buffer[CMDLINE_LNG];
     hstr_strelide(buffer, text, width>2?width-2:0);
-    snprintf(screenLine, width, " %s", buffer);
+    int size = snprintf(screenLine, width, " %s", buffer);
+    if(size < 0) screenLine[0]=0;
     mvprintw(y, 0, "%s", screenLine); clrtoeol();
 
     if(pattern && strlen(pattern)) {
@@ -939,9 +1073,14 @@ char* hstr_print_selection(unsigned maxHistoryItems, char* pattern)
 
     move(hstr->promptYItemsStart, 0);
     clrtobot();
-    if(hstr->promptBottom) {
+    bool labelsAreOnBottom = (hstr->promptBottom && !hstr->helpOnOppositeSide) || (!hstr->promptBottom && hstr->helpOnOppositeSide);
+    if(labelsAreOnBottom) {
+        // TODO: Why is the reprinting here necessary? Please make a comment.
         print_help_label();
         print_history_label();
+    }
+    if(hstr->promptBottom) {
+        // TODO: Why is the reprinting here necessary? Please make a comment.
         print_pattern(pattern, hstr->promptY, print_prompt());
         y=hstr->promptYItemsEnd;
     } else {
@@ -1033,7 +1172,7 @@ void highlight_selection(int selectionCursorPosition, int previousSelectionCurso
 int remove_from_history_model(char* almostDead)
 {
     if(hstr->view==HSTR_VIEW_FAVORITES) {
-        return favorites_remove(hstr->favorites, almostDead);
+        return (int)favorites_remove(hstr->favorites, almostDead);
     } else {
         // raw & ranked history is pruned first as its items point to system history lines
         int systemOccurences=0, rawOccurences=history_mgmt_remove_from_raw(almostDead, hstr->history);
@@ -1068,16 +1207,36 @@ void stdout_history_and_return(void)
 // IMPROVE hstr doesn't have to be passed as parameter - it's global static
 char* getResultFromSelection(int selectionCursorPosition, Hstr* hstr, char* result) {
     if (hstr->promptBottom) {
-        result=hstr->selection[hstr->promptYItemsEnd-selectionCursorPosition];
+        result=hstr->selection[hstr->promptItems-selectionCursorPosition-1];
     } else {
         result=hstr->selection[selectionCursorPosition];
     }
     return result;
 }
 
+void hide_notification(void)
+{
+    if(!hstr->hideBasicHelp) {
+        print_help_label();
+    } else {
+        if(!hstr->hideHistoryHelp) {
+            print_history_label();
+        } else {
+            // TODO: If possible, we should rerender the command list here,
+            //  because one of the items was used to print the notification.
+        }
+    }
+}
+
 void loop_to_select(void)
 {
     signal(SIGINT, signal_callback_handler_ctrl_c);
+
+    bool isSubshellHint=FALSE;
+    char* isSubshellHintText = getenv(HSTR_ENV_VAR_IS_SUBSHELL);
+    if(isSubshellHintText && strlen(isSubshellHintText)>0) {
+        isSubshellHint=TRUE;
+    }
 
     hstr_curses_start();
     // TODO move the code below to hstr_curses
@@ -1094,13 +1253,15 @@ void loop_to_select(void)
     hstr_print_selection(recalculate_max_history_items(), NULL);
                 
     color_attr_off(COLOR_PAIR(HSTR_COLOR_NORMAL));
-    if(!hstr->promptBottom) {
+    bool labelsAreOnBottom = (hstr->promptBottom && !hstr->helpOnOppositeSide) || (!hstr->promptBottom && hstr->helpOnOppositeSide);
+    if(!labelsAreOnBottom) {
+        // TODO: Why is the reprinting here necessary? Please make a comment.
         print_help_label();
         print_history_label();
     }
 
     bool done=FALSE, skip=TRUE, executeResult=FALSE, lowercase=TRUE;
-    bool printDefaultLabel=TRUE, fixCommand=FALSE, editCommand=FALSE;
+    bool hideNotificationOnNextTick=TRUE, fixCommand=FALSE, editCommand=FALSE;
     unsigned basex=print_prompt();
     int x=basex, c, cc, cursorX=0, cursorY=0, maxHistoryItems, deletedOccurences;
     int width=getmaxx(stdscr);
@@ -1142,9 +1303,9 @@ void loop_to_select(void)
             continue;
         }
 
-        if(printDefaultLabel) {
-            print_help_label();
-            printDefaultLabel=FALSE;
+        if(hideNotificationOnNextTick) {
+            hide_notification();
+            hideNotificationOnNextTick=FALSE;
         }
 
         if(c == K_CTRL_R) {
@@ -1173,12 +1334,12 @@ void loop_to_select(void)
                     result=hstr_print_selection(maxHistoryItems, pattern);
                     print_cmd_deleted_label(msg, deletedOccurences);
                 } else {
-                    print_help_label();
+                    hide_notification();
                 }
                 free(msg);
                 move(hstr->promptY, basex+strlen(pattern));
-                printDefaultLabel=TRUE;
-                print_history_label();
+                hideNotificationOnNextTick=TRUE;
+                print_history_label();  // TODO: Why is this necessary? Add comment!
 
                 if(hstr->selectionSize == 0) {
                     // just update the cursor, there are no elements to select
@@ -1187,12 +1348,12 @@ void loop_to_select(void)
                 }
 
                 if(hstr->promptBottom) {
-                    if(selectionCursorPosition <= (int)(hstr->promptYItemsEnd-hstr->selectionSize+1)) {
-                        selectionCursorPosition=hstr->promptYItemsEnd-hstr->selectionSize+1;
+                    if(selectionCursorPosition < (int)(hstr->promptItems-hstr->selectionSize)) {
+                        selectionCursorPosition=hstr->promptItems-hstr->selectionSize;
                     }
                 } else {
                     if(selectionCursorPosition >= (int)hstr->selectionSize) {
-                        selectionCursorPosition = hstr->selectionSize - 1;
+                        selectionCursorPosition = hstr->selectionSize-1;
                     }
                 }
                 highlight_selection(selectionCursorPosition, SELECTION_CURSOR_IN_PROMPT, pattern);
@@ -1264,7 +1425,7 @@ void loop_to_select(void)
                 selectionCursorPosition=SELECTION_CURSOR_IN_PROMPT;
                 if(hstr->view!=HSTR_VIEW_FAVORITES) {
                     print_cmd_added_favorite_label(result);
-                    printDefaultLabel=TRUE;
+                    hideNotificationOnNextTick=TRUE;
                 }
                 // TODO code review
                 if(strlen(pattern)<(width-basex-1)) {
@@ -1324,8 +1485,8 @@ void loop_to_select(void)
             previousSelectionCursorPosition=selectionCursorPosition;
             if(selectionCursorPosition>0) {
                 if(hstr->promptBottom) {
-                    if(selectionCursorPosition <= (int)(hstr->promptYItemsEnd-hstr->selectionSize+1)) {
-                        selectionCursorPosition=hstr->promptYItemsEnd;
+                    if(selectionCursorPosition <= (int)(hstr->promptItems-hstr->selectionSize)) {
+                        selectionCursorPosition=hstr->promptItems-1;
                     } else {
                         selectionCursorPosition--;
                     }
@@ -1334,7 +1495,7 @@ void loop_to_select(void)
                 }
             } else {
                 if(hstr->promptBottom) {
-                    selectionCursorPosition=hstr->promptYItemsEnd;
+                    selectionCursorPosition=hstr->promptItems-1;
                 } else {
                     selectionCursorPosition=hstr->selectionSize-1;
                 }
@@ -1357,17 +1518,17 @@ void loop_to_select(void)
         case K_CTRL_N:
             if(selectionCursorPosition==SELECTION_CURSOR_IN_PROMPT) {
                 if(hstr->promptBottom) {
-                    selectionCursorPosition=hstr->promptYItemsEnd-hstr->selectionSize+1;
+                    selectionCursorPosition=hstr->promptItems-hstr->selectionSize;
                 } else {
                     selectionCursorPosition=previousSelectionCursorPosition=0;
                 }
             } else {
                 previousSelectionCursorPosition=selectionCursorPosition;
                 if(hstr->promptBottom) {
-                    if(selectionCursorPosition<hstr->promptYItemsEnd) {
+                    if(selectionCursorPosition<hstr->promptItems-1) {
                         selectionCursorPosition++;
                     } else {
-                        selectionCursorPosition=hstr->promptYItemsEnd-hstr->selectionSize+1;
+                        selectionCursorPosition=hstr->promptItems-hstr->selectionSize;
                     }
                 } else {
                     if((selectionCursorPosition+1) < (int)hstr->selectionSize) {
@@ -1429,7 +1590,12 @@ void loop_to_select(void)
             break;
         case K_TAB:
         case KEY_RIGHT:
-            editCommand=TRUE;
+            if(!isSubshellHint) {
+                editCommand=TRUE;
+            } else {
+                // Not setting editCommand to TRUE here,
+                // because else an unnecessary blank line gets emitted before returning to prompt.
+            }
             if(selectionCursorPosition!=SELECTION_CURSOR_IN_PROMPT) {
                 result=getResultFromSelection(selectionCursorPosition, hstr, result);
                 if(hstr->view==HSTR_VIEW_FAVORITES) {
@@ -1443,7 +1609,7 @@ void loop_to_select(void)
         case K_CTRL_G:
         case K_ESC:
             result=NULL;
-            history_clear_dirty();
+            history_mgmt_clear_dirty();
             done=TRUE;
             break;
         case K_CTRL_X:
@@ -1527,10 +1693,10 @@ void hstr_interactive(void)
         } else {
             stdout_history_and_return();
         }
-        hstr_on_exit();
-    } else {
-        printf("No history - nothing to suggest...\n");
-    }
+        history_mgmt_flush();
+    } // else (no history) handled in create() method
+
+    hstr_exit(EXIT_SUCCESS);
 }
 
 void hstr_getopt(int argc, char **argv)
@@ -1547,36 +1713,42 @@ void hstr_getopt(int argc, char **argv)
             break;
         case 'k':
             if(history_mgmt_remove_last_history_entry(hstr->verboseKill)) {
-                exit(EXIT_SUCCESS);
+                hstr_exit(EXIT_SUCCESS);
+                break;
             } else {
-                exit(EXIT_FAILURE);
+                hstr_exit(EXIT_FAILURE);
+                break;
             }
         case 'b':
             blacklist_load(&hstr->blacklist);
             blacklist_dump(&hstr->blacklist);
-            exit(EXIT_SUCCESS);
+            hstr_exit(EXIT_SUCCESS);
+            break;
         case 'V':
             printf("%s", VERSION_STRING);
-            exit(EXIT_SUCCESS);
+            hstr_exit(EXIT_SUCCESS);
+            break;
         case 'h':
             printf("%s", HELP_STRING);
-            exit(EXIT_SUCCESS);
+            hstr_exit(EXIT_SUCCESS);
+            break;
         case 'z':
             printf("%s", INSTALL_ZSH_STRING);
-            exit(EXIT_SUCCESS);
+            hstr_exit(EXIT_SUCCESS);
+            break;
         case 's':
-            // ZSH_VERSION is not exported by Zsh > detected by parent process name
+            // ZSH_VERSION is not exported by zsh > detected by parent process name
             if(isZshParentShell()) {
                 printf("%s", INSTALL_ZSH_STRING);
             } else {
                 printf("%s", INSTALL_BASH_STRING);
             }
-            exit(EXIT_SUCCESS);
-
+            hstr_exit(EXIT_SUCCESS);
+            break;
         case '?':
         default:
             printf("%s", HELP_STRING);
-            exit(EXIT_SUCCESS);
+            hstr_exit(EXIT_SUCCESS);
         }
     }
 
@@ -1596,9 +1768,8 @@ int hstr_main(int argc, char* argv[])
     hstr_getopt(argc, argv);
     favorites_get(hstr->favorites);
     blacklist_load(&hstr->blacklist);
+    // hstr cleanup is handled by hstr_exit()
     hstr_interactive();
-
-    // hstr cleanup is handled by hstr_on_exit()
 
     return EXIT_SUCCESS;
 }

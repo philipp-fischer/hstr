@@ -18,7 +18,7 @@ Table of contents:
 * Examples
   
 # Features
-HSTR is typically started by pressing <kbd>Ctrl</kbd><kbd>r</kbd> after
+HSTR is typically started by pressing <kbd>Ctrl-r</kbd> after
 you configure it for this shorcut in your shell. However,
 you can run it as a normal program just by typing:
 
@@ -63,7 +63,7 @@ items is highlighted. Once you are done with your choice:
 
 * press `ENTER` to choose the command and execute it
 * or press `TAB` or `RIGHT` arrow key to choose the command and edit it on command line after exiting HSTR
-* or press `LEFT` arrow key to choose the command and open it in editor (Bash `fc` i.e. fix command)
+* or press `LEFT` arrow key to choose the command and open it in editor (`bash` `fc` i.e. fix command)
 
 
 ## Favorite Commands
@@ -71,10 +71,10 @@ HSTR allows you to store and manage your favorite
 commands. 
 
 A new favorite command can be added from
-ranking or raw history view by pressing <kbd>Ctrl</kbd><kbd>f</kbd>.
+ranking or raw history view by pressing <kbd>Ctrl-f</kbd>.
 
 You can check your favorite commands by choosing 
-favorite view - rotate views using <kbd>Ctrl</kbd><kbd>/</kbd> or start
+favorite view - rotate views using <kbd>Ctrl-/</kbd> or start
 HSTR by adding `favorites-view` to `HSTR_CONFIG` environment
 property. A favorite command can be choosen just
 by pressing `ENTER` when on command in favorite view.
@@ -124,7 +124,7 @@ Tips:
   it with your own blacklist.
 * You can skip any command from history just by
   prefixing it with `SPACE`. For example:
-  ` echo "Skip this from history"` It's a Bash
+  ` echo "Skip this from history"` It's a `bash`
   option that is configured using 
   `HISTCONTROL=ignorespace` environment variable.
 
@@ -138,7 +138,7 @@ hstr --kill-last-command
 ```
 
 See configuration section for how to bind this functionality to
-a key - bound to <kbd>Ctrl</kbd><kbd>x</kbd> <kbd>k</kbd> by default.
+a key - bound to <kbd>Ctrl-k</kbd> by default.
 
 
 # Examples
@@ -162,7 +162,7 @@ Print history items containing 'git' to standard output and exit:
 hh --non-interactive git
 ```
 
-Append  default `hh` configuration to your Bash profile:
+Append  default `hh` configuration to your `bash` profile:
 
 ```bash
 hh --show-configuration >> ~/.bashrc

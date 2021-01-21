@@ -10,6 +10,7 @@ Install:
 * [Debian](#debianmint)
 * [Mint](#debianmint)
 * [Arch Linux](#archmanjaro-linux)
+* [Milis Linux](#milis-linux)
 * [Manjaro Linux](#archmanjaro-linux)
 * [Scientific Linux](#fedorarhelcentosscientific)
 * [Haiku OS](#haiku-os)
@@ -77,7 +78,12 @@ Alternatively you can download and install `.deb` archive from [GitHub releases]
 section of the project:
 
 ```bash
-sudo dpkg -i hstr_-<major>.<minor>.<revision>_1-amd64.deb
+wget -O hstr.deb https://github.com/dvorka/hstr/releases/download/2.3/hstr_<major>.<minor>.<revision>-1_amd64.deb
+
+# dependencies:
+apt-get install libncursesw5 libtinfo5
+
+sudo dpkg -i hstr.deb
 ```
 
 
@@ -101,14 +107,14 @@ If you want to make sure you have the latest version, then download `.rpm` archi
 [GitHub releases](https://github.com/dvorka/hstr/releases) and install it:
 
 ```bash
-sudo rpm -Uvh ./hstr-<major>.<minor>.<revision>-2.x86_64.rpm -y
+sudo dnf install ./hstr-<major>.<minor>.<revision>-2.x86_64.rpm
 ```
 
 ## openSUSE
-To install HSTR on openSUSE Leap 42.1 run the following commands as root:
+To install HSTR on openSUSE, please check https://software.opensuse.org/package/hstr first. You can install HSTR as shown below (just choose repository you like):
 
 ```bash
-zypper addrepo https://download.opensuse.org/repositories/home:tuw-e184/openSUSE_Leap_42.1/home:tuw-e184.repo
+zypper addrepo https://download.opensuse.org/repositories/home:lemmy04/openSUSE_Leap_15.1/home:lemmy04.repo
 zypper refresh
 zypper install hstr
 ```
@@ -129,9 +135,14 @@ To install HSTR on Arch or Manjaro Linux download the latest distribution from [
 
 Use [PKGBUILD](https://wiki.archlinux.org/index.php/PKGBUILD) in the root of the distribution to build package using `makepkg`.
 
-To install hstr from the [Arch User Repository (AUR)](https://aur.archlinux.org/packages/hstr-git/) run `yaourt -S hstr-git` in command line.
+To install HSTR from the [Arch User Repository (AUR)](https://aur.archlinux.org/packages/hstr-git/) run `yaourt -S hstr-git` in command line.
 
+## Milis Linux
+To install HSTR on Milis Linux run the following commands as root:
 
+```bash
+mps kur hstr
+```
 
 [Configure](CONFIGURATION.md) HSTR and check its [man page](README.md#documentation).
 
@@ -142,10 +153,10 @@ To install HSTR on Haiku OS use [Haiku Depot](https://www.haiku-os.org/docs/user
 
 [Configure](CONFIGURATION.md) HSTR and check its [man page](README.md#documentation).
 ## macOS
-Install HSTR on macOS using [Homebrew](https://brew.sh/) ([formula](https://formulae.brew.sh/formula/hh)):
+Install HSTR on macOS using [Homebrew](https://brew.sh/) ([formula](https://formulae.brew.sh/formula/hstr)):
 
 ```bash
-brew install hh
+brew install hstr
 ```
 
 [Configure](CONFIGURATION.md) HSTR and check its [man page](README.md#documentation).
@@ -332,7 +343,7 @@ hstr --show-configuration >> ~/.bashrc
 . ~/.bashrc
 ```
 
-Make sure to **run** HSTR using <kbd>Ctrl</kbd><kbd>r</kbd> (or `hstrwsl`) - otherwise commands will not appear in prompt.
+Make sure to **run** HSTR using <kbd>Ctrl-r</kbd> (or `hstrwsl`) - otherwise commands will not appear in prompt.
 
 [Configure](CONFIGURATION.md) HSTR and check its [man page](README.md#documentation).
 
@@ -363,7 +374,7 @@ hstr --show-configuration >> ~/.bashrc
 . ~/.bashrc
 ```
 
-Make sure to **run** HSTR using <kbd>Ctrl</kbd><kbd>r</kbd> (or `hstrcygwin`) - otherwise commands will not appear in prompt.
+Make sure to **run** HSTR using <kbd>Ctrl-r</kbd> (or `hstrcygwin`) - otherwise commands will not appear in prompt.
 
 [Configure](CONFIGURATION.md) HSTR and check its [man page](README.md#documentation).
 ## Build on macOS

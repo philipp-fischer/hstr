@@ -1,6 +1,6 @@
 # configure.ac      Autoconf configuration file
 #
-# Copyright (C) 2014-2018  Martin Dvorak <martin.dvorak@mindforger.com>
+# Copyright (C) 2014-2020  Martin Dvorak <martin.dvorak@mindforger.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 
 AC_PREREQ([2.69])
 
-AC_INIT(hstr, 2.0.0, martin.dvorak@mindforger.com)
+AC_INIT(hstr, 2.3.0, martin.dvorak@mindforger.com)
 AC_CONFIG_FILES([Makefile src/Makefile man/Makefile])
 
 # Check src dir existence.
@@ -122,7 +122,7 @@ AC_CHECK_FILE(/tmp/hstr-ms-wsl,AC_DEFINE(__MS_WSL__), [])
 # Bash CLI autocomplete
 AC_ARG_WITH([bash-completion-dir],
     AS_HELP_STRING([--with-bash-completion-dir[=PATH]],
-        [Install the Bash auto-completion script in this directory. @<:@default=no@:>@]),
+        [Install the bash auto-completion script in this directory. @<:@default=no@:>@]),
     [],
     [with_bash_completion_dir=no])
 

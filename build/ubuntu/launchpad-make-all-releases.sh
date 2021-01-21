@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (C) 2014-2018  Martin Dvorak <martin.dvorak@mindforger.com>
+# Copyright (C) 2014-2020  Martin Dvorak <martin.dvorak@mindforger.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -163,14 +163,14 @@ then
     exit 1
 fi
 
-export ARG_BAZAAR_MSG="Release 2.0"
-export ARG_MAJOR_VERSION=2.0.
+export ARG_BAZAAR_MSG="Release 2.3"
+export ARG_MAJOR_VERSION=2.3.
 export ARG_MINOR_VERSION=0 # minor version is incremented for every Ubuntu version
 
 # https://wiki.ubuntu.com/Releases
-# old: precise quantal saucy precise utopic vivid wily yakkety artful
-# current: trusty xenial bionic cosmic
-for UBUNTU_VERSION in trusty xenial bionic
+# old: precise quantal saucy precise utopic vivid wily yakkety artful cosmic
+# current: trusty xenial bionic focal groovy
+for UBUNTU_VERSION in trusty xenial bionic focal groovy
 do
     echo "Releasing HSTR for Ubuntu version: ${UBUNTU_VERSION}"
     releaseForParticularUbuntuVersion ${UBUNTU_VERSION} ${ARG_MAJOR_VERSION}${ARG_MINOR_VERSION} "${ARG_BAZAAR_MSG}"
